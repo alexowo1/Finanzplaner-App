@@ -25,3 +25,4 @@ Fokus: schnelle Eingabe, Kategorienverwaltung, Filter (Zeitraum/Kategorie) und B
 - Screen für Statistiken & Charts zur graphischen Übersicht
 - PC & IOS Version (momentan nur für Android verfügbar)
 - Synchronisation zwischen eigenen Geräten (Handy ⟷ Tablet ⟷ Laptop/PC)
+- mehr Designs und Darkmode
