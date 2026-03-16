@@ -1,16 +1,27 @@
-# haushaltsplaner
+# Finanzplaner/Haushaltsplaner App
 
-Haushaltsplaner
+Eine Haushaltsplaner-App zum Tracken von Einnahmen & Ausgaben (Flutter + lokale SQLite DB via Drift). \
+Fokus: schnelle Eingabe, Kategorienverwaltung, Filter (Zeitraum/Kategorie) und Backup/Restore.
 
-## Getting Started
+## Features
 
-This project is a starting point for a Flutter application.
+- Anzeige von Einnahmen vs. Ausgaben und Saldo
+- Buchungen erfassen (Einnahme/Ausgabe, Betrag, Datum, Kategorie, Notiz)
+- Buchungen bearbeiten & löschen (Soft-Delete)
+- Kategorien anlegen/umbenennen/löschen (Soft-Delete + Wiederherstellen bei gleichem Namen)
+- Beim Löschen einer Kategorie: Buchungen wahlweise
+    - löschen (Soft-Delete),
+    - in andere Kategorie verschieben,
+    - ins Archiv verschieben
+- Filter im HomeScreen:
+    - Zeitraum (Komplett, Monat, Spanne, YTD, etc.)
+    - Kategorie
+- Backup:
+    - Export als JSON (Share Sheet: z.B. Google Drive)
+    - Import aus JSON
 
-A few resources to get you started if this is your first Flutter project:
+### Kommende Features
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- Screen für Statistiken & Charts zur graphischen Übersicht
+- PC & IOS Version (momentan nur für Android verfügbar)
+- Synchronisation zwischen eigenen Geräten (Handy ⟷ Tablet ⟷ Laptop/PC)
