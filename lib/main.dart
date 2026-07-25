@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'db/database.dart';
 import 'backup/backup_service.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'main_pager.dart';
 
 void main() {
   runApp(const HaushaltsplanerApp());
@@ -56,7 +57,7 @@ class _HaushaltsplanerAppState extends State<HaushaltsplanerApp> {
           shadowColor: Colors.transparent,
         ),
       ),
-      home: HomeScreen(db: db),
+      home: MainPager(db: db),
 
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
