@@ -40,11 +40,13 @@ class Transactions extends Table {
 
 @DriftDatabase(tables: [Transactions, Categories])
 class AppDatabase extends _$AppDatabase {
-  AppDatabase():
-        super(driftDatabase(name: 'haushaltsplaner_db',
-      // native: DriftNativeOptions(shareAcrossIsolates: true), // optional
-    ),
-  );
+  AppDatabase()
+    : super(
+        driftDatabase(
+          name: 'haushaltsplaner_db',
+          // native: DriftNativeOptions(shareAcrossIsolates: true), // optional
+        ),
+      );
 
   @override
   int get schemaVersion => 2;
@@ -54,8 +56,8 @@ class AppDatabase extends _$AppDatabase {
     final q = select(transactions)
       ..where((t) => t.deletedAtMs.isNull())
       ..orderBy([
-            (t) => OrderingTerm(expression: t.date, mode: OrderingMode.desc),
-            (t) => OrderingTerm(expression: t.updatedAtMs, mode: OrderingMode.desc),
+        (t) => OrderingTerm(expression: t.date, mode: OrderingMode.desc),
+        (t) => OrderingTerm(expression: t.updatedAtMs, mode: OrderingMode.desc),
       ]);
     return q.watch();
   }
@@ -63,7 +65,7 @@ class AppDatabase extends _$AppDatabase {
   Future<CategoryEntry?> getActiveCategoryByName(String name) {
     final n = name.trim();
     return (select(categories)
-      ..where((c) => c.deletedAtMs.isNull() & c.name.equals(n)))
+          ..where((c) => c.deletedAtMs.isNull() & c.name.equals(n)))
         .getSingleOrNull();
   }
 
@@ -112,10 +114,7 @@ class AppDatabase extends _$AppDatabase {
   Future<void> softDelete(String id) async {
     final now = DateTime.now().millisecondsSinceEpoch;
     await (update(transactions)..where((t) => t.id.equals(id))).write(
-      TransactionsCompanion(
-        deletedAtMs: Value(now),
-        updatedAtMs: Value(now),
-      ),
+      TransactionsCompanion(deletedAtMs: Value(now), updatedAtMs: Value(now)),
     );
   }
 
@@ -124,15 +123,15 @@ class AppDatabase extends _$AppDatabase {
     final q = select(transactions)
       ..where((t) => t.deletedAtMs.isNull() & t.date.like('$yyyyMm-%'))
       ..orderBy([
-            (t) => OrderingTerm(expression: t.date, mode: OrderingMode.desc),
-            (t) => OrderingTerm(expression: t.updatedAtMs, mode: OrderingMode.desc),
+        (t) => OrderingTerm(expression: t.date, mode: OrderingMode.desc),
+        (t) => OrderingTerm(expression: t.updatedAtMs, mode: OrderingMode.desc),
       ]);
     return q.watch();
   }
 
   Stream<List<TxEntry>> watchActiveTransactionsInRange({
     String? startIsoInclusive, // z.B. "2025-01-01"
-    String? endIsoExclusive,   // z.B. "2025-04-01" (erster Tag des Folgemonats)
+    String? endIsoExclusive, // z.B. "2025-04-01" (erster Tag des Folgemonats)
     String? categoryId,
   }) {
     final q = select(transactions)
@@ -151,8 +150,8 @@ class AppDatabase extends _$AppDatabase {
         return expr;
       })
       ..orderBy([
-            (t) => OrderingTerm(expression: t.date, mode: OrderingMode.desc),
-            (t) => OrderingTerm(expression: t.updatedAtMs, mode: OrderingMode.desc),
+        (t) => OrderingTerm(expression: t.date, mode: OrderingMode.desc),
+        (t) => OrderingTerm(expression: t.updatedAtMs, mode: OrderingMode.desc),
       ]);
 
     return q.watch();
@@ -173,7 +172,9 @@ class AppDatabase extends _$AppDatabase {
 
         // Kategorien aus bestehenden Transaktionen übernehmen
         final now = DateTime.now().millisecondsSinceEpoch;
-        final rows = await customSelect('SELECT DISTINCT category FROM transactions').get();
+        final rows = await customSelect(
+          'SELECT DISTINCT category FROM transactions',
+        ).get();
 
         for (final r in rows) {
           final name = (r.data['category'] as String?)?.trim();
@@ -205,9 +206,11 @@ class AppDatabase extends _$AppDatabase {
   Future<void> _ensureDefaultCategory() async {
     final now = DateTime.now().millisecondsSinceEpoch;
 
-    final existing = await (select(categories)
-      ..where((c) => c.name.equals('Allgemein') & c.deletedAtMs.isNull()))
-        .getSingleOrNull();
+    final existing =
+        await (select(categories)..where(
+              (c) => c.name.equals('Allgemein') & c.deletedAtMs.isNull(),
+            ))
+            .getSingleOrNull();
 
     if (existing == null) {
       await into(categories).insert(
@@ -230,43 +233,49 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<CategoryEntry?> getCategoryById(String id) {
-    return (select(categories)..where((c) => c.id.equals(id))).getSingleOrNull();
+    return (select(
+      categories,
+    )..where((c) => c.id.equals(id))).getSingleOrNull();
   }
 
   Future<CreateCategoryResult> createCategory(String name) async {
-  final n = name.trim();
-  if (n.isEmpty) return CreateCategoryResult.invalid;
+    final n = name.trim();
+    if (n.isEmpty) return CreateCategoryResult.invalid;
 
-  final now = DateTime.now().millisecondsSinceEpoch;
+    final now = DateTime.now().millisecondsSinceEpoch;
 
-  // Wichtig: auch gelöschte Kategorien prüfen (kein deletedAt Filter)
-  final existing = await (select(categories)..where((c) => c.name.equals(n))).getSingleOrNull();
+    // Wichtig: auch gelöschte Kategorien prüfen (kein deletedAt Filter)
+    final existing = await (select(
+      categories,
+    )..where((c) => c.name.equals(n))).getSingleOrNull();
 
-  if (existing != null) {
-  if (existing.deletedAtMs != null) {
-  // Restore (und gleiche ID behalten)
-  await (update(categories)..where((c) => c.id.equals(existing.id))).write(
-  CategoriesCompanion(
-  deletedAtMs: const Value(null),
-  updatedAtMs: Value(now),
-  ),
-  );
-  return CreateCategoryResult.restored;
-  }
-  return CreateCategoryResult.alreadyExists;
-  }
+    if (existing != null) {
+      if (existing.deletedAtMs != null) {
+        // Restore (und gleiche ID behalten)
+        await (update(
+          categories,
+        )..where((c) => c.id.equals(existing.id))).write(
+          CategoriesCompanion(
+            deletedAtMs: const Value(null),
+            updatedAtMs: Value(now),
+          ),
+        );
+        return CreateCategoryResult.restored;
+      }
+      return CreateCategoryResult.alreadyExists;
+    }
 
-  // Neu erstellen (kein insertOrIgnore -> wenn doch was schiefgeht, wird Fehler ausgegeben)
-  await into(categories).insert(
-  CategoriesCompanion(
-  id: Value(_uuid.v4()),
-  name: Value(n),
-  updatedAtMs: Value(now),
-  deletedAtMs: const Value(null),
-  ),
-  );
+    // Neu erstellen (kein insertOrIgnore -> wenn doch was schiefgeht, wird Fehler ausgegeben)
+    await into(categories).insert(
+      CategoriesCompanion(
+        id: Value(_uuid.v4()),
+        name: Value(n),
+        updatedAtMs: Value(now),
+        deletedAtMs: const Value(null),
+      ),
+    );
 
-  return CreateCategoryResult.created;
+    return CreateCategoryResult.created;
   }
 
   Future<void> renameCategory(String id, String newName) async {
@@ -275,20 +284,14 @@ class AppDatabase extends _$AppDatabase {
     final now = DateTime.now().millisecondsSinceEpoch;
 
     await (update(categories)..where((c) => c.id.equals(id))).write(
-      CategoriesCompanion(
-        name: Value(n),
-        updatedAtMs: Value(now),
-      ),
+      CategoriesCompanion(name: Value(n), updatedAtMs: Value(now)),
     );
   }
 
   Future<void> softDeleteCategory(String id) async {
     final now = DateTime.now().millisecondsSinceEpoch;
     await (update(categories)..where((c) => c.id.equals(id))).write(
-      CategoriesCompanion(
-        deletedAtMs: Value(now),
-        updatedAtMs: Value(now),
-      ),
+      CategoriesCompanion(deletedAtMs: Value(now), updatedAtMs: Value(now)),
     );
   }
 
@@ -302,13 +305,15 @@ class AppDatabase extends _$AppDatabase {
     return (row.data['c'] as int?) ?? 0;
   }
 
-// 2) Kategorie anhand Name holen (egal ob deleted oder nicht)
+  // 2) Kategorie anhand Name holen (egal ob deleted oder nicht)
   Future<CategoryEntry?> getCategoryByNameAny(String name) {
     final n = name.trim();
-    return (select(categories)..where((c) => c.name.equals(n))).getSingleOrNull();
+    return (select(
+      categories,
+    )..where((c) => c.name.equals(n))).getSingleOrNull();
   }
 
-// 3) Kategorie sicherstellen: existiert -> ggf. restore, sonst neu anlegen
+  // 3) Kategorie sicherstellen: existiert -> ggf. restore, sonst neu anlegen
   Future<CategoryEntry> ensureCategoryActiveByName(String name) async {
     final n = name.trim();
     final now = DateTime.now().millisecondsSinceEpoch;
@@ -316,13 +321,17 @@ class AppDatabase extends _$AppDatabase {
     final existing = await getCategoryByNameAny(n);
     if (existing != null) {
       if (existing.deletedAtMs != null) {
-        await (update(categories)..where((c) => c.id.equals(existing.id))).write(
+        await (update(
+          categories,
+        )..where((c) => c.id.equals(existing.id))).write(
           CategoriesCompanion(
             deletedAtMs: const Value(null),
             updatedAtMs: Value(now),
           ),
         );
-        return (await (select(categories)..where((c) => c.id.equals(existing.id))).getSingle());
+        return (await (select(
+          categories,
+        )..where((c) => c.id.equals(existing.id))).getSingle());
       }
       return existing;
     }
@@ -337,10 +346,12 @@ class AppDatabase extends _$AppDatabase {
       ),
     );
 
-    return (await (select(categories)..where((c) => c.id.equals(id))).getSingle());
+    return (await (select(
+      categories,
+    )..where((c) => c.id.equals(id))).getSingle());
   }
 
-// 4) Buchungen in andere Kategorie verschieben (sync-tauglich: updatedAtMs setzen)
+  // 4) Buchungen in andere Kategorie verschieben (sync-tauglich: updatedAtMs setzen)
   Future<void> moveActiveTransactionsToCategory({
     required String fromCategoryId,
     required String toCategoryId,
@@ -348,29 +359,32 @@ class AppDatabase extends _$AppDatabase {
   }) async {
     final now = DateTime.now().millisecondsSinceEpoch;
 
-    await (update(transactions)
-      ..where((t) => t.deletedAtMs.isNull() & t.categoryId.equals(fromCategoryId)))
+    await (update(transactions)..where(
+          (t) => t.deletedAtMs.isNull() & t.categoryId.equals(fromCategoryId),
+        ))
         .write(
-      TransactionsCompanion(
-        categoryId: Value(toCategoryId),
-        category: Value(toCategoryNameSnapshot), // Snapshot wichtig
-        updatedAtMs: Value(now),
-      ),
-    );
+          TransactionsCompanion(
+            categoryId: Value(toCategoryId),
+            category: Value(toCategoryNameSnapshot), // Snapshot wichtig
+            updatedAtMs: Value(now),
+          ),
+        );
   }
 
-// 5) Buchungen dieser Kategorie löschen (soft-delete, sync-tauglich)
-  Future<void> softDeleteActiveTransactionsForCategory(String categoryId) async {
+  // 5) Buchungen dieser Kategorie löschen (soft-delete, sync-tauglich)
+  Future<void> softDeleteActiveTransactionsForCategory(
+    String categoryId,
+  ) async {
     final now = DateTime.now().millisecondsSinceEpoch;
 
-    await (update(transactions)
-      ..where((t) => t.deletedAtMs.isNull() & t.categoryId.equals(categoryId)))
+    await (update(transactions)..where(
+          (t) => t.deletedAtMs.isNull() & t.categoryId.equals(categoryId),
+        ))
         .write(
-      TransactionsCompanion(
-        deletedAtMs: Value(now),
-        updatedAtMs: Value(now),
-      ),
-    );
+          TransactionsCompanion(
+            deletedAtMs: Value(now),
+            updatedAtMs: Value(now),
+          ),
+        );
   }
-
 }

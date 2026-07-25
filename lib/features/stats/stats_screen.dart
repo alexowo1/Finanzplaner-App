@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'db/database.dart';
+import '../../data/models/finance_transaction.dart';
+import '../../data/repositories/finance_repository.dart';
 
 class StatsScreen extends StatelessWidget {
-  final AppDatabase db;
-  const StatsScreen({super.key, required this.db});
+  final FinanceRepository repository;
+  const StatsScreen({super.key, required this.repository});
 
   String _iso(DateTime d) {
     final y = d.year.toString().padLeft(4, '0');
@@ -16,7 +17,8 @@ class StatsScreen extends StatelessWidget {
   DateTime _monthStart(DateTime d) => DateTime(d.year, d.month, 1);
   DateTime _nextMonthStart(DateTime d) => DateTime(d.year, d.month + 1, 1);
 
-  String _monthKey(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}';
+  String _monthKey(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}';
 
   DateTime _parseIsoDate(String iso) {
     final p = iso.split('-');
@@ -37,7 +39,7 @@ class StatsScreen extends StatelessWidget {
     final endExclusive = _nextMonthStart(now);
     final start6 = DateTime(endExclusive.year, endExclusive.month - 6, 1);
 
-    final stream = db.watchActiveTransactionsInRange(
+    final stream = repository.watchActiveTransactionsInRange(
       startIsoInclusive: _iso(start6),
       endIsoExclusive: _iso(endExclusive),
       categoryId: null,
@@ -45,17 +47,23 @@ class StatsScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Statistiken')),
-      body: StreamBuilder<List<TxEntry>>(
+      body: StreamBuilder<List<FinanceTransaction>>(
         stream: stream,
         builder: (context, snap) {
-          final items = snap.data ?? const <TxEntry>[];
+          final items = snap.data ?? const <FinanceTransaction>[];
           if (items.isEmpty) {
-            return const Center(child: Text('Noch keine Daten für Statistiken.'));
+            return const Center(
+              child: Text('Noch keine Daten für Statistiken.'),
+            );
           }
 
           // Months list (last 6 months incl current)
           final months = List.generate(6, (i) {
-            final d = DateTime(endExclusive.year, endExclusive.month - (5 - i), 1);
+            final d = DateTime(
+              endExclusive.year,
+              endExclusive.month - (5 - i),
+              1,
+            );
             return d;
           });
           final incomeByMonth = {for (final m in months) _monthKey(m): 0};
@@ -70,20 +78,24 @@ class StatsScreen extends StatelessWidget {
             final d = _parseIsoDate(t.date);
             final key = _monthKey(DateTime(d.year, d.month, 1));
 
-            if (incomeByMonth.containsKey(key) || expenseByMonth.containsKey(key)) {
+            if (incomeByMonth.containsKey(key) ||
+                expenseByMonth.containsKey(key)) {
               if (t.type == 'income') {
                 incomeByMonth[key] = (incomeByMonth[key] ?? 0) + t.amountCents;
               } else {
-                expenseByMonth[key] = (expenseByMonth[key] ?? 0) + t.amountCents;
+                expenseByMonth[key] =
+                    (expenseByMonth[key] ?? 0) + t.amountCents;
               }
             }
 
             // pie only for current month + expenses
             if (key == thisMonthKey && t.type == 'expense') {
               final cat = (t.categoryId != null && t.categoryId!.isNotEmpty)
-                  ? t.category // Snapshot-Name reicht hier
+                  ? t
+                        .category // Snapshot-Name reicht hier
                   : t.category;
-              expenseByCategory[cat] = (expenseByCategory[cat] ?? 0) + t.amountCents;
+              expenseByCategory[cat] =
+                  (expenseByCategory[cat] ?? 0) + t.amountCents;
             }
           }
 
@@ -172,9 +184,18 @@ class StatsScreen extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _Kpi(label: 'Einnahmen (Monat)', value: _fmtEuro(monthIncome)),
-                      _Kpi(label: 'Ausgaben (Monat)', value: _fmtEuro(monthExpense)),
-                      _Kpi(label: 'Saldo (Monat)', value: _fmtEuro(monthBalance)),
+                      _Kpi(
+                        label: 'Einnahmen (Monat)',
+                        value: _fmtEuro(monthIncome),
+                      ),
+                      _Kpi(
+                        label: 'Ausgaben (Monat)',
+                        value: _fmtEuro(monthExpense),
+                      ),
+                      _Kpi(
+                        label: 'Saldo (Monat)',
+                        value: _fmtEuro(monthBalance),
+                      ),
                     ],
                   ),
                 ),
@@ -187,7 +208,10 @@ class StatsScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Letzte 6 Monate', style: Theme.of(context).textTheme.titleMedium),
+                      Text(
+                        'Letzte 6 Monate',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
                       const SizedBox(height: 10),
                       SizedBox(
                         height: 220,
@@ -195,13 +219,18 @@ class StatsScreen extends StatelessWidget {
                           BarChartData(
                             barGroups: barGroups,
                             titlesData: FlTitlesData(
-                              topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                              rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                              topTitles: const AxisTitles(
+                                sideTitles: SideTitles(showTitles: false),
+                              ),
+                              rightTitles: const AxisTitles(
+                                sideTitles: SideTitles(showTitles: false),
+                              ),
                               leftTitles: AxisTitles(
                                 sideTitles: SideTitles(
                                   showTitles: true,
                                   reservedSize: 44,
-                                  getTitlesWidget: (value, meta) => Text('${value.toInt()}€'),
+                                  getTitlesWidget: (value, meta) =>
+                                      Text('${value.toInt()}€'),
                                 ),
                               ),
                               bottomTitles: AxisTitles(
@@ -209,7 +238,8 @@ class StatsScreen extends StatelessWidget {
                                   showTitles: true,
                                   getTitlesWidget: (value, meta) {
                                     final i = value.toInt();
-                                    if (i < 0 || i >= months.length) return const SizedBox.shrink();
+                                    if (i < 0 || i >= months.length)
+                                      return const SizedBox.shrink();
                                     final m = months[i];
                                     return Padding(
                                       padding: const EdgeInsets.only(top: 6),
@@ -244,8 +274,10 @@ class StatsScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Ausgaben nach Kategorie (dieser Monat)',
-                          style: Theme.of(context).textTheme.titleMedium),
+                      Text(
+                        'Ausgaben nach Kategorie (dieser Monat)',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
                       const SizedBox(height: 10),
                       SizedBox(
                         height: 220,
@@ -258,7 +290,9 @@ class StatsScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      ...top.map((e) => Text('• ${e.key}: ${_fmtEuro(e.value)}')),
+                      ...top.map(
+                        (e) => Text('• ${e.key}: ${_fmtEuro(e.value)}'),
+                      ),
                       if (restSum > 0) Text('• Andere: ${_fmtEuro(restSum)}'),
                     ],
                   ),
@@ -299,7 +333,11 @@ class _LegendDot extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
         const SizedBox(width: 6),
         Text(label),
       ],

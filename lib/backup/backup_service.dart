@@ -14,41 +14,53 @@ class BackupService {
 
   Future<File> exportJsonBackup() async {
     final cats = await db.select(db.categories).get();
-    final txs  = await db.select(db.transactions).get();
+    final txs = await db.select(db.transactions).get();
 
     final payload = {
       "version": 1,
       "exportedAtMs": DateTime.now().millisecondsSinceEpoch,
-      "categories": cats.map((c) => {
-        "id": c.id,
-        "name": c.name,
-        "updatedAtMs": c.updatedAtMs,
-        "deletedAtMs": c.deletedAtMs,
-      }).toList(),
-      "transactions": txs.map((t) => {
-        "id": t.id,
-        "type": t.type,
-        "amountCents": t.amountCents,
-        "date": t.date,
-        "category": t.category,
-        "categoryId": t.categoryId,
-        "note": t.note,
-        "updatedAtMs": t.updatedAtMs,
-        "deletedAtMs": t.deletedAtMs,
-      }).toList(),
+      "categories": cats
+          .map(
+            (c) => {
+              "id": c.id,
+              "name": c.name,
+              "updatedAtMs": c.updatedAtMs,
+              "deletedAtMs": c.deletedAtMs,
+            },
+          )
+          .toList(),
+      "transactions": txs
+          .map(
+            (t) => {
+              "id": t.id,
+              "type": t.type,
+              "amountCents": t.amountCents,
+              "date": t.date,
+              "category": t.category,
+              "categoryId": t.categoryId,
+              "note": t.note,
+              "updatedAtMs": t.updatedAtMs,
+              "deletedAtMs": t.deletedAtMs,
+            },
+          )
+          .toList(),
     };
 
     final dir = await getTemporaryDirectory();
     final ts = DateTime.now().toIso8601String().replaceAll(':', '-');
     final file = File('${dir.path}/haushaltsplaner-backup-$ts.json');
 
-    await file.writeAsString(const JsonEncoder.withIndent('  ').convert(payload));
+    await file.writeAsString(
+      const JsonEncoder.withIndent('  ').convert(payload),
+    );
     return file;
   }
 
   Future<void> shareLatestBackup() async {
     final file = await exportJsonBackup();
-    await Share.shareXFiles([XFile(file.path)], text: 'Haushaltsplaner Backup (JSON)');
+    await Share.shareXFiles([
+      XFile(file.path),
+    ], text: 'Haushaltsplaner Backup (JSON)');
   }
 
   Future<bool> importJsonBackupFromPicker({bool replaceLocal = true}) async {
@@ -76,12 +88,16 @@ class BackupService {
       } else if (file.path != null) {
         bytes = await File(file.path!).readAsBytes();
       } else {
-        throw Exception('Konnte Datei nicht lesen (kein bytes/readStream/path).');
+        throw Exception(
+          'Konnte Datei nicht lesen (kein bytes/readStream/path).',
+        );
       }
 
       final data = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
-      final categories = (data["categories"] as List<dynamic>).cast<Map<String, dynamic>>();
-      final transactions = (data["transactions"] as List<dynamic>).cast<Map<String, dynamic>>();
+      final categories = (data["categories"] as List<dynamic>)
+          .cast<Map<String, dynamic>>();
+      final transactions = (data["transactions"] as List<dynamic>)
+          .cast<Map<String, dynamic>>();
 
       await db.transaction(() async {
         if (replaceLocal) {

@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
-import 'db/database.dart';
-import 'main.dart';
-import 'stats_screen.dart';
+
+import '../backup/backup_service.dart';
+import '../data/repositories/finance_repository.dart';
+import '../features/home/home_screen.dart';
+import '../features/stats/stats_screen.dart';
 
 class MainPager extends StatefulWidget {
-  final AppDatabase db;
-  const MainPager({super.key, required this.db});
+  final FinanceRepository repository;
+  final BackupService backupService;
+
+  const MainPager({
+    super.key,
+    required this.repository,
+    required this.backupService,
+  });
 
   @override
   State<MainPager> createState() => _MainPagerState();
@@ -39,12 +47,13 @@ class _MainPagerState extends State<MainPager> {
           controller: _controller,
           onPageChanged: (i) => setState(() => _index = i),
           children: [
-            HomeScreen(db: widget.db),
-            StatsScreen(db: widget.db),
+            HomeScreen(
+              repository: widget.repository,
+              backupService: widget.backupService,
+            ),
+            StatsScreen(repository: widget.repository),
           ],
         ),
-
-        // 2 Striche unten (zentriert), tappbar
         Positioned(
           left: 0,
           right: 0,
