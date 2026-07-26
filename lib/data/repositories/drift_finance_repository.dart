@@ -110,32 +110,66 @@ class DriftFinanceRepository implements FinanceRepository {
       _db.countActiveTransactionsForCategory(categoryId);
 
   @override
-  Future<FinanceCategory> ensureCategoryActiveByName(String name) async {
-    final entry = await _db.ensureCategoryActiveByName(name);
-    return _mapCategory(entry);
-  }
-
-  @override
-  Future<void> moveActiveTransactionsToCategory({
-    required String fromCategoryId,
-    required String toCategoryId,
-    required String toCategoryNameSnapshot,
+  Future<void> deleteCategoryWithPolicy({
+    required String categoryId,
+    required CategoryDeletionPolicy policy,
+    String? targetCategoryId,
   }) {
-    return _db.moveActiveTransactionsToCategory(
-      fromCategoryId: fromCategoryId,
-      toCategoryId: toCategoryId,
-      toCategoryNameSnapshot: toCategoryNameSnapshot,
-    );
+    return _db.transaction(() async {
+      final transactionCount = await _db.countActiveTransactionsForCategory(
+        categoryId,
+      );
+
+      if (transactionCount > 0) {
+        switch (policy) {
+          case CategoryDeletionPolicy.moveTransactions:
+            final CategoryEntry target;
+
+            if (targetCategoryId == null) {
+              target = await _db.ensureCategoryActiveByName('Sonstige');
+            } else {
+              final existingTarget = await _db.getCategoryById(
+                targetCategoryId,
+              );
+
+              if (existingTarget == null ||
+                  existingTarget.deletedAtMs != null) {
+                throw StateError('Die Zielkategorie ist nicht verfügbar.');
+              }
+
+              if (existingTarget.id == categoryId) {
+                throw ArgumentError(
+                  'Eine Kategorie kann nicht in sich selbst verschoben werden.',
+                );
+              }
+
+              target = existingTarget;
+            }
+
+            await _db.moveActiveTransactionsToCategory(
+              fromCategoryId: categoryId,
+              toCategoryId: target.id,
+              toCategoryNameSnapshot: target.name,
+            );
+            break;
+
+          case CategoryDeletionPolicy.archiveTransactions:
+            final archive = await _db.ensureCategoryActiveByName('Archiv');
+
+            await _db.moveActiveTransactionsToCategory(
+              fromCategoryId: categoryId,
+              toCategoryId: archive.id,
+              toCategoryNameSnapshot: archive.name,
+            );
+            break;
+
+          case CategoryDeletionPolicy.deleteTransactions:
+            await _db.softDeleteActiveTransactionsForCategory(categoryId);
+            break;
+        }
+      }
+
+      await _db.softDeleteCategory(categoryId);
+    });
   }
-
-  @override
-  Future<void> deleteActiveTransactionsForCategory(String categoryId) =>
-      _db.softDeleteActiveTransactionsForCategory(categoryId);
-
-  @override
-  Future<void> deleteCategory(String id) => _db.softDeleteCategory(id);
-
-  @override
-  Future<T> runInTransaction<T>(Future<T> Function() action) =>
-      _db.transaction(action);
 }

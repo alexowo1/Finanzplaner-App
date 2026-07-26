@@ -194,38 +194,20 @@ class CategoryManagerScreen extends StatelessWidget {
 
     if (ok != true) return;
 
-    await repository.runInTransaction(() async {
-      // 1) Policy anwenden
-      if (count > 0) {
-        if (policy == _DeleteCatPolicy.deleteEntries) {
-          await repository.deleteActiveTransactionsForCategory(cat.id);
-        } else if (policy == _DeleteCatPolicy.archive) {
-          final archive = await repository.ensureCategoryActiveByName('Archiv');
-          await repository.moveActiveTransactionsToCategory(
-            fromCategoryId: cat.id,
-            toCategoryId: archive.id,
-            toCategoryNameSnapshot: archive.name,
-          );
-        } else {
-          // move
-          // Falls es keine Zielkategorie gab, stelle "Allgemein" sicher und nutze die.
-          FinanceCategory target;
-          if (moveTargetId == null) {
-            target = await repository.ensureCategoryActiveByName('Allgemein');
-          } else {
-            target = targets.firstWhere((c) => c.id == moveTargetId);
-          }
+    final deletionPolicy = switch (policy) {
+      _DeleteCatPolicy.move => CategoryDeletionPolicy.moveTransactions,
 
-          await repository.moveActiveTransactionsToCategory(
-            fromCategoryId: cat.id,
-            toCategoryId: target.id,
-            toCategoryNameSnapshot: target.name,
-          );
-        }
-      }
-      // 2) Kategorie selbst soft-deleten
-      await repository.deleteCategory(cat.id);
-    });
+      _DeleteCatPolicy.archive => CategoryDeletionPolicy.archiveTransactions,
+
+      _DeleteCatPolicy.deleteEntries =>
+        CategoryDeletionPolicy.deleteTransactions,
+    };
+
+    await repository.deleteCategoryWithPolicy(
+      categoryId: cat.id,
+      policy: deletionPolicy,
+      targetCategoryId: policy == _DeleteCatPolicy.move ? moveTargetId : null,
+    );
 
     if (!context.mounted) return;
     ScaffoldMessenger.of(

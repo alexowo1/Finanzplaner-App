@@ -3,9 +3,15 @@ import '../models/finance_transaction.dart';
 
 enum CategoryCreationResult { created, restored, alreadyExists, invalid }
 
+enum CategoryDeletionPolicy {
+  moveTransactions,
+  archiveTransactions,
+  deleteTransactions,
+}
+
 /// Abstraktion zwischen UI und Datenquelle.
-///
-/// Die UI kennt dadurch weder Drift noch SQLite. Heute wird dieses Interface
+
+/// Die UI kennt dadurch weder Drift noch SQLite. Erstmal wird dieses Interface
 /// durch eine Drift-Implementierung umgesetzt; später kann eine Remote-/Sync-
 /// Implementierung ergänzt werden, ohne die Screens erneut umzubauen.
 abstract class FinanceRepository {
@@ -36,15 +42,10 @@ abstract class FinanceRepository {
   Future<void> deleteTransaction(String id);
   Future<void> renameCategory(String id, String newName);
   Future<int> countActiveTransactionsForCategory(String categoryId);
-  Future<FinanceCategory> ensureCategoryActiveByName(String name);
 
-  Future<void> moveActiveTransactionsToCategory({
-    required String fromCategoryId,
-    required String toCategoryId,
-    required String toCategoryNameSnapshot,
+  Future<void> deleteCategoryWithPolicy({
+    required String categoryId,
+    required CategoryDeletionPolicy policy,
+    String? targetCategoryId,
   });
-
-  Future<void> deleteActiveTransactionsForCategory(String categoryId);
-  Future<void> deleteCategory(String id);
-  Future<T> runInTransaction<T>(Future<T> Function() action);
 }
