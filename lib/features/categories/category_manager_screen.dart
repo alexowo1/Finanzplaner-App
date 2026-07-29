@@ -209,17 +209,16 @@ class CategoryManagerScreen extends StatelessWidget {
         policy: deletionPolicy,
         targetCategoryId: policy == _DeleteCatPolicy.move ? moveTargetId : null,
       );
-    } on UnsupportedError {
+    } catch (error) {
       if (!context.mounted) {
         return;
       }
 
+      debugPrint('Kategorie konnte nicht gelöscht werden: $error');
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Das Löschen von Kategorien ist in der '
-            'Webversion noch nicht verfügbar.',
-          ),
+          content: Text('Die Kategorie konnte nicht gelöscht werden.'),
         ),
       );
 

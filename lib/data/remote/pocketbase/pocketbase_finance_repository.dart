@@ -430,11 +430,30 @@ class PocketBaseFinanceRepository implements FinanceRepository {
     required String categoryId,
     required CategoryDeletionPolicy policy,
     String? targetCategoryId,
-  }) {
-    throw UnsupportedError(
-      'Die atomare PocketBase-Serveraktion zum Löschen '
-      'einer Kategorie wird im nächsten Schritt ergänzt.',
+  }) async {
+    final response = await _client.send<Map<String, dynamic>>(
+      '/api/haushaltsplaner/categories/delete-with-policy',
+      method: 'POST',
+      body: {
+        'categoryId': categoryId,
+        'policy': policy.name,
+        'targetCategoryId': targetCategoryId ?? '',
+      },
     );
+
+    final affectedTransactions =
+        (response['affectedTransactions'] as num?)?.toInt() ?? 0;
+
+    final resolvedTargetCategoryId =
+        response['targetCategoryId'] as String? ?? '';
+
+    print(
+      'Kategorie gelöscht: '
+      '$affectedTransactions Buchungen betroffen, '
+      'Zielkategorie: $resolvedTargetCategoryId',
+    );
+
+    await Future.wait([_reloadCategories(), _reloadTransactions()]);
   }
 
   Future<void> dispose() async {
