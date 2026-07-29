@@ -25,13 +25,9 @@ enum _TxAction { cancel, edit, delete }
 
 class HomeScreen extends StatefulWidget {
   final FinanceRepository repository;
-  final BackupService backupService;
+  final BackupService? backupService;
 
-  const HomeScreen({
-    super.key,
-    required this.repository,
-    required this.backupService,
-  });
+  const HomeScreen({super.key, required this.repository, this.backupService});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();

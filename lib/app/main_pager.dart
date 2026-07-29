@@ -7,12 +7,14 @@ import '../features/stats/stats_screen.dart';
 
 class MainPager extends StatefulWidget {
   final FinanceRepository repository;
-  final BackupService backupService;
+  final BackupService? backupService;
+  final VoidCallback? onSignOut;
 
   const MainPager({
     super.key,
     required this.repository,
-    required this.backupService,
+    this.backupService,
+    this.onSignOut,
   });
 
   @override
@@ -54,6 +56,21 @@ class _MainPagerState extends State<MainPager> {
             StatsScreen(repository: widget.repository),
           ],
         ),
+
+        if (widget.onSignOut != null)
+          Positioned(
+            left: 10,
+            bottom: 4,
+            child: SafeArea(
+              top: false,
+              child: IconButton(
+                onPressed: widget.onSignOut,
+                tooltip: 'Abmelden',
+                icon: const Icon(Icons.logout),
+              ),
+            ),
+          ),
+
         Positioned(
           left: 0,
           right: 0,

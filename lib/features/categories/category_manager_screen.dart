@@ -8,12 +8,12 @@ enum _DeleteCatPolicy { move, archive, deleteEntries }
 
 class CategoryManagerScreen extends StatelessWidget {
   final FinanceRepository repository;
-  final BackupService backupService;
+  final BackupService? backupService;
 
   const CategoryManagerScreen({
     super.key,
     required this.repository,
-    required this.backupService,
+    this.backupService,
   });
 
   static Color _pastelByIndex(int index, int count) {
@@ -203,11 +203,28 @@ class CategoryManagerScreen extends StatelessWidget {
         CategoryDeletionPolicy.deleteTransactions,
     };
 
-    await repository.deleteCategoryWithPolicy(
-      categoryId: cat.id,
-      policy: deletionPolicy,
-      targetCategoryId: policy == _DeleteCatPolicy.move ? moveTargetId : null,
-    );
+    try {
+      await repository.deleteCategoryWithPolicy(
+        categoryId: cat.id,
+        policy: deletionPolicy,
+        targetCategoryId: policy == _DeleteCatPolicy.move ? moveTargetId : null,
+      );
+    } on UnsupportedError {
+      if (!context.mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Das Löschen von Kategorien ist in der '
+            'Webversion noch nicht verfügbar.',
+          ),
+        ),
+      );
+
+      return;
+    }
 
     if (!context.mounted) return;
     ScaffoldMessenger.of(
@@ -221,39 +238,58 @@ class CategoryManagerScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Kategorien'),
         actions: [
-          PopupMenuButton<String>(
-            onSelected: (v) async {
-              final backup = backupService;
+          if (backupService != null)
+            PopupMenuButton<String>(
+              onSelected: (value) async {
+                final backup = backupService;
 
-              if (v == 'export') {
-                await backup.shareLatestBackup();
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Backup exportiert ✅')),
-                );
-              }
+                if (backup == null) {
+                  return;
+                }
 
-              if (v == 'import') {
-                final ok = await backup.importJsonBackupFromPicker(
-                  replaceLocal: true,
-                );
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      ok
-                          ? 'Import abgeschlossen ✅'
-                          : 'Import abgebrochen/fehlgeschlagen ❌',
+                if (value == 'export') {
+                  await backup.shareLatestBackup();
+
+                  if (!context.mounted) {
+                    return;
+                  }
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Backup exportiert ✅')),
+                  );
+                }
+
+                if (value == 'import') {
+                  final success = await backup.importJsonBackupFromPicker(
+                    replaceLocal: true,
+                  );
+
+                  if (!context.mounted) {
+                    return;
+                  }
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        success
+                            ? 'Import abgeschlossen ✅'
+                            : 'Import abgebrochen/fehlgeschlagen ❌',
+                      ),
                     ),
-                  ),
-                );
-              }
-            },
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: 'export', child: Text('Backup exportieren')),
-              PopupMenuItem(value: 'import', child: Text('Backup importieren')),
-            ],
-          ),
+                  );
+                }
+              },
+              itemBuilder: (_) => const [
+                PopupMenuItem(
+                  value: 'export',
+                  child: Text('Backup exportieren'),
+                ),
+                PopupMenuItem(
+                  value: 'import',
+                  child: Text('Backup importieren'),
+                ),
+              ],
+            ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(

@@ -13,13 +13,13 @@ enum TxType { income, expense }
 
 class AddTransactionScreen extends StatefulWidget {
   final FinanceRepository repository;
-  final BackupService backupService;
+  final BackupService? backupService;
   final FinanceTransaction? existing;
 
   const AddTransactionScreen({
     super.key,
     required this.repository,
-    required this.backupService,
+    this.backupService,
     this.existing,
   });
 
